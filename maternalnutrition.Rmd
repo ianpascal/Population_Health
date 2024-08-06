@@ -1,0 +1,204 @@
+---
+title: To what extent does maternal nutrition during pregnancy impact infant mortality
+  and birth defects?
+author: "Ian Pascal"
+date: "2024-03-10"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+
+
+## Introduction:
+
+Nutrition has always been a topic that I’m passionate about, especially in relation to Population Health. This interest led me to choose the topic of maternal nutrition and its impact on maternal/neonatal disorders in infants. Specifically, to what extent does maternal nutrition during pregnancy impact infant mortality and birth defects? Using data from the Global Burden of Disease Study in 2019, I accumulated data covering variables related to birth defects and infant mortality by country. The datasets relative to infant mortality and birth defects covered the YLDs percentage of Congenital Birth Defects, Neonatal Disorders, and maternal disorders. Another dataset included all females between the ages of 15 and 49, with YLDS percentages for dietary risks and nutritional deficiencies such as iron deficiencies.
+	
+## Previous Literature:
+
+Addressing Nutritional Vulnerability in Women: A Comprehensive Review and UNICEF's Response (Unicef, 2020)
+
+UNICEF discusses the nutritional needs before pregnancy and how women require nutritious diets to establish reserves critical for pregnancy. It describes how inadequate nutrition during this phase can impact maternal and fetal health. Many regions face concerning levels of poor nutritional status among women, specifically adolescents, and those at risk due to factors such as limited access to diverse foods and gender inequality. The authors discuss solutions involving political change, advocating for bold leadership to mobilize resources for women’s nutrition. They emphasize enhancing access to affordable nutritious foods and implementing policies to protect women from unhealthy options. Overall, the review highlights the necessity of nutrition for women during and before pregnancy for the best outcomes for their offspring.
+
+Maternal Undernutrition Influences Placental-Fetal Development (Belkacemi et al., 2010)
+
+This study elaborates on how maternal undernutrition impacts placental and fetal development, underscoring the crucial period of pregnancy. Poor maternal nutrition can lead to various adverse outcomes, including birth defects and increased infant mortality. The study provides insight into the biological mechanisms affected by nutritional deficiencies.
+
+## Methods:
+
+Since I could not find data specifically for under malnutrition for Pregnant women I decided to subset global burden of disease data from 2019. Specifically subsetting the population for females that are 15-49 when extracting data similar to malnutrition such as dietary risks and nutritional deficiencies. Although our data doesn’t directly cover women who are pregnant with malnutrition we are still able to get a good estimate with this dataset. The values will be percentages relating to the percent of DALYS out of the total DALYs for that specific country. To get an idea of the distribution between maternal nutrition and maternal disorders I will create two simple choropleth visualizations. Thus, so can see which regions of the world have the higher percentage of total DALYs for those two variables. Then I will perform correlation tests comparing nutritional deficiencies and dietary risks to the three maternal variables. For whatever variable has the highest correlation score I will create a simple scatterplot comparing the two with a linear regression line to fit the chart. 
+
+
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+library(tidyverse)
+library(ggplot2)
+```
+
+
+```{r}
+neo_natal_df <- read.csv("neonataldisord.csv")
+dietrisk_p_df <- read.csv("dietaryrisksPreg.csv")
+nutritionaldef_p_df <- read.csv("nutritonaldefPreg.csv") 
+matdisorder <- read.csv("maternaldiso.csv")
+congBirthDef <- read.csv("CongBirthDef.csv")
+irondef_p_df <- read.csv("irondefPreg.csv")
+
+
+```
+
+Percent of total DALYS 
+
+```{r warning=FALSE}
+colnames(neo_natal_df)[colnames(neo_natal_df) == "Value"] <- "neo_natal"
+
+colnames(irondef_p_df)[colnames(irondef_p_df) == "Value"] <- "irondef_p"
+
+colnames(dietrisk_p_df)[colnames(dietrisk_p_df) == "Value"] <- "dietrisk_p"
+
+colnames(nutritionaldef_p_df)[colnames(nutritionaldef_p_df) == "Value"] <- "nutritionaldef_p"
+
+colnames(matdisorder)[colnames(matdisorder) == "Value"] <- "matdisorder"
+
+colnames(congBirthDef)[colnames(congBirthDef) == "Value"] <- "congBirthDef"
+
+```
+
+
+```{r warning=FALSE}
+risk_cause_df <- merge(merge(merge(merge(merge(neo_natal_df, irondef_p_df, by = "Location", all = TRUE),
+                                     dietrisk_p_df, by = "Location", all = TRUE),
+                             nutritionaldef_p_df, by = "Location", all = TRUE),
+                     matdisorder, by = "Location", all = TRUE),
+                 congBirthDef, by = "Location", all = TRUE)
+
+
+```
+
+
+
+```{r warning=FALSE}
+library(sf)
+library(ggplot2)
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+merged <- merge(world, risk_cause_df, by.x = "name", by.y = "Location", all.x = TRUE)
+
+ggplot() +
+  geom_sf(data = merged, aes(fill = nutritionaldef_p)) +
+  scale_fill_viridis_c(name = "Percent of Total DALYs", option = "viridis") + 
+  labs(title = "Nutritional Deficiency DALYs Percentage\n by Country Among Females 15-49\n Data: GBD 2019") + 
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "white"), 
+        panel.background = element_rect(fill = "white"), 
+        plot.title = element_text(size = 20, lineheight = 1)) + 
+  coord_sf() 
+
+
+
+```
+
+## Maternal Disorder
+
+```{r warning=FALSE}
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+merged <- merge(world, risk_cause_df, by.x = "name", by.y = "Location", all.x = TRUE)
+
+ggplot() +
+  geom_sf(data = merged, aes(fill = matdisorder)) +
+  scale_fill_viridis_c(name = "Percent of Total DALYs", option = "viridis") + 
+  labs(title = "Maternal Disorders DALYs Percentage\n by Country, Data: GBD 2019") + 
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "white"), 
+        panel.background = element_rect(fill = "white"), 
+        plot.title = element_text(size = 20, lineheight = 1)) + 
+  coord_sf() 
+```
+
+## Map Findings
+
+It is evident from these visualizations that regions in South America, Africa, Middle East, and South Asia have higher DALYs for nutrient deficiency. When looking at the maternal disorder visualization the DALYs are the highest in mainly Africa and some of South Asia. There is some correlation in South Asia but maternal disorders in DALYS are significantly higher than any other region of the world which is something to keep in mind. For western nations we tend to not see a higher percent of DALYs for either variable.
+
+
+## Correlation Tests
+Perform correlation tests for dietrisk_p with matdisorder, neo_natal, and congBirthDef.Then perform correlation tests for nutritionaldef_p with matdisorder, neo_natal, and congBirthDef.
+
+
+```{r warning=FALSE}
+
+cor_test_dietrisk <- cor.test(risk_cause_df$dietrisk_p, risk_cause_df$matdisorder)
+cor_test_neo_natal <- cor.test(risk_cause_df$dietrisk_p, risk_cause_df$neo_natal)
+cor_test_congBirthDef <- cor.test(risk_cause_df$dietrisk_p, risk_cause_df$congBirthDef)
+
+cor_test_nutritionaldef_matdisorder <- cor.test(risk_cause_df$nutritionaldef_p, risk_cause_df$matdisorder)
+cor_test_nutritionaldef_neo_natal <- cor.test(risk_cause_df$nutritionaldef_p, risk_cause_df$neo_natal)
+cor_test_nutritionaldef_congBirthDef <- cor.test(risk_cause_df$nutritionaldef_p, risk_cause_df$congBirthDef)
+
+print("Correlation test results for dietrisk_p:")
+print(cor_test_dietrisk)
+print(cor_test_neo_natal)
+print(cor_test_congBirthDef)
+
+print("Correlation test results for nutritionaldef_p:")
+print(cor_test_nutritionaldef_matdisorder)
+print(cor_test_nutritionaldef_neo_natal)
+print(cor_test_nutritionaldef_congBirthDef)
+
+```
+
+### Scatterplot
+
+```{r warning=FALSE}
+
+scatterplot_df <- risk_cause_df[, c("nutritionaldef_p", "neo_natal", "Location")]
+top_countries <- scatterplot_df %>%
+  arrange(desc(nutritionaldef_p)) %>%
+  head(10)
+
+ggplot(scatterplot_df, aes(x = nutritionaldef_p, y = neo_natal, label = Location)) +
+  geom_point(color = "lightblue") +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  geom_text(data = top_countries, aes(label = Location), hjust = -0.2, vjust = 0.5, size = 3) +
+  labs(x = "Nutritional Deficiencies (Percent of Total DALYs)",
+       y = "Neo-Natal Disorders (Percent of Total DALYs)",
+       title = "Comparison of Nutritional Deficiencies and Neo-Natal Disorders (Country)",
+       caption = "Data source: GBD (2019)") +
+  theme_minimal()
+
+```
+
+## Results:
+
+From our correlation tests, Dietary risks and are infant health related variables all are not statistically significant and have relatively low correlation scores. But when we compare nutritional deficiencies among woman 15-49 we find more significant. Specifically between the variables nutritional deficiencies and neo-netal disorders with a correlation of close to 0.4. We also see how nutritional_def and maternal disorder correlation is 0.3, when comparing it to cognitive Birth Defects its at 0.26. All 3 of these variables are statistically significant when drawing comparisons on the Percent of Total DALYs relative to nutritional deficiencies. Thus, we will look closer at the relationship with neo-natal disorders since it has the highest correlation, using a scatter plot.
+
+From the scatter plot above its shown there is some correlation between the variables but not a enough to make inferences on for it. When looking at the 10 countries with the highest percentage of total DALYs for Nutritional Deficiencies we can see Pakistan, Mali, Somalia, and Yemen have strong correlations between Nutritional Deficiency and Non-Natal Disorders.
+  
+## Discussion 
+
+The findings of this small study shed light on the intricate relationship between maternal nutrition during pregnancy, infant mortality, and birth defects. The observed correlations between nutritional deficiencies among women aged 15-49 and neonatal disorders underscore the critical role of maternal nutrition in fetal and infant health outcomes. Our results align with previous literature emphasizing the significance of maternal dietary intake in establishing optimal reserves for pregnancy and ensuring proper fetal development (Unicef, 2020). Specifically, the correlation between nutritional deficiencies and neonatal disorders highlights the importance of addressing maternal malnutrition to mitigate adverse neonatal outcomes. Although we cannot say that nutritional deficiencies causes neo-natal disorders since the correlation wasn't strong. But our results were significant when comparing nutrient deficient countries to issues such as cognitive birth defects, neo-natal, and maternal disorders.There are many other factors that play a role in infants health, fetal development, and disorders. So we do not want to make any ecological fallacies on the variables we tested.
+  
+These findings strengthen our understanding of regional disparities in maternal health and nutritional status. The visualizations depicting higher percentages of DALYs for nutrient deficiency in regions such as South America, Africa, the Middle East, and South Asia underscore the need for targeted interventions to improve maternal nutrition in these areas. The concentration of maternal disorders, particularly in Africa and parts of South Asia, further emphasizes the urgency of addressing maternal health disparities globally (Belkacemi, Nelson, Ross. 2010). Specifically in the Pakistan where it had a very high neo-natal disorder percentage relative to a high nutritional deficiencies percent. Countries like Pakistan are places to explore in further research on the topic of maternal nutrition and birth defects.
+  
+The use of DALYs as a measure of disease burden may oversimplify the complex interplay of factors contributing to maternal and neonatal health outcomes. Future research could benefit from longitudinal studies that track maternal nutritional status throughout pregnancy and assess its impact on infant health outcomes more comprehensively. Additionally, our data set may not have been entirely accurate since it wasn't focusing on maternal nutrition for pregnant woman and instead females among the ages of 15-49. Another limitation is the reliance of aggregated data which may not capture individual level nuances between maternal nutrition and health outcomes of infants. Also our research was very broad and if further research were to just do the United States we may get a better understanding of the dietary risks on maternal health. The dietary risks included variables such as high in processed foods, sugar consumption, and other specific traits where data globally is limited. But for the United States we may have more information on daily health traits to gain better understanding on maternal nutrition.
+  
+Overall there were some correlations between maternal nutritional deficiencies and neonatal disorders but with the limitations of our study its hard to provide a solid answer to our initial research question. We must consider other factors such as access to healthcare, socioeconomic status, and environmental influences which play significant roles in shaping infant health.
+  
+
+## References:
+
+Global Burden of Disease Study 2019 GHD
+
+Addressing Nutritional Vulnerability in Women: A Comprehensive Review and UNICEF's Response, Unicef (2020)
+
+Louiza Belkacemi, D. Michael Nelson, Mina Desai, Michael G. Ross . 2010, Maternal Undernutrition Influences Placental-Fetal Development, Page 325-331.
+
